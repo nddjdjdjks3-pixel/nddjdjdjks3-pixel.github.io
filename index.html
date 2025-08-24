@@ -1,0 +1,1546 @@
+<!--` 奶龙粉丝可以玩，不是奶龙粉丝不能玩，玩了司马 作者Makaveli`，-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>奶龙五子棋 - Gomoku Milkdragon (AI增强版)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+            background: #000;
+        }
+
+        .theme-scifi {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        }
+
+        .theme-classic {
+            background: linear-gradient(135deg, #f5f5dc, #d2b48c);
+        }
+
+        .theme-neon {
+            background: linear-gradient(135deg, #000428, #004e92);
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 15px 10px;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            flex-wrap: wrap;
+        }
+
+        .game-title {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            flex-shrink: 0;
+        }
+
+        .theme-classic .game-title {
+            background: linear-gradient(45deg, #8b4513, #d2691e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(139, 69, 19, 0.3);
+        }
+
+        .theme-neon .game-title {
+            background: linear-gradient(45deg, #ff006e, #8338ec);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255, 0, 110, 0.5);
+        }
+
+        .controls-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .milkdragon-btn {
+            padding: 8px 16px;
+            border: 2px solid #ff00ff;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #ff00ff, #8b00ff);
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+            animation: milkdragonPulse 2s infinite;
+            flex-shrink: 0;
+        }
+
+        .milkdragon-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 5px 25px rgba(255, 0, 255, 0.9);
+        }
+
+        .milkdragon-btn.played {
+            animation: none;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        @keyframes milkdragonPulse {
+            0%, 100% { 
+                box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 25px rgba(255, 0, 255, 0.9);
+                transform: scale(1.05);
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            backdrop-filter: blur(5px);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.active {
+            background: rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .theme-classic .btn {
+            background: rgba(139, 69, 19, 0.3);
+            color: #8b4513;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .difficulty-btn {
+            padding: 5px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .difficulty-btn.active {
+            background: rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-indicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .piece-skin-classic .piece-black {
+            background: radial-gradient(circle at 30% 30%, #444, #000);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .piece-skin-classic .piece-white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .piece-skin-crystal .piece-black {
+            background: radial-gradient(circle at 30% 30%, #4a0080, #000);
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .piece-skin-crystal .piece-white {
+            background: radial-gradient(circle at 30% 30%, #e6e6fa, #b19cd9);
+            box-shadow: 0 0 20px rgba(147, 112, 219, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .piece-skin-fire .piece-black {
+            background: radial-gradient(circle at 30% 30%, #ff4500, #8b0000);
+            box-shadow: 0 0 25px rgba(255, 69, 0, 0.9), inset 0 0 15px rgba(255, 255, 0, 0.3);
+        }
+
+        .piece-skin-fire .piece-white {
+            background: radial-gradient(circle at 30% 30%, #ffd700, #ff8c00);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        .piece-skin-ice .piece-black {
+            background: radial-gradient(circle at 30% 30%, #191970, #000080);
+            box-shadow: 0 0 20px rgba(0, 191, 255, 0.8), inset 0 0 10px rgba(173, 216, 230, 0.3);
+        }
+
+        .piece-skin-ice .piece-white {
+            background: radial-gradient(circle at 30% 30%, #e0ffff, #afeeee);
+            box-shadow: 0 0 20px rgba(135, 206, 250, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.7);
+        }
+
+        .piece-skin-scifi .piece-black {
+            background: radial-gradient(circle at 30% 30%, #00ffff, #0066cc);
+            box-shadow:
+                0 0 30px rgba(0, 255, 255, 0.8),
+                inset 0 0 20px rgba(255, 255, 255, 0.3),
+                0 0 50px rgba(0, 102, 204, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .piece-skin-scifi .piece-black::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: scifiGlow 2s linear infinite;
+        }
+
+        .piece-skin-scifi .piece-white {
+            background: radial-gradient(circle at 30% 30%, #ff00ff, #9900cc);
+            box-shadow:
+                0 0 30px rgba(255, 0, 255, 0.8),
+                inset 0 0 20px rgba(255, 255, 255, 0.3),
+                0 0 50px rgba(153, 0, 204, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .piece-skin-scifi .piece-white::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(-45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: scifiGlow 2s linear infinite reverse;
+        }
+
+        @keyframes scifiGlow {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .player-active {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); }
+            50% { transform: scale(1.1); box-shadow: 0 2px 20px rgba(0, 255, 136, 0.5); }
+            100% { transform: scale(1); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); }
+        }
+
+        .board-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 5px;
+            position: relative;
+        }
+
+        .board {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-classic .board {
+            background: rgba(210, 180, 140, 0.8);
+            box-shadow: 0 10px 30px rgba(139, 69, 19, 0.3);
+        }
+
+        .grid {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            gap: 0;
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+        }
+
+        .theme-scifi .grid {
+            background-image:
+                repeating-linear-gradient(0deg, rgba(0, 255, 136, 0.1) 0px, transparent 1px, transparent 100%, rgba(0, 255, 136, 0.1) 100%),
+                repeating-linear-gradient(90deg, rgba(0, 255, 136, 0.1) 0px, transparent 1px, transparent 100%, rgba(0, 255, 136, 0.1) 100%);
+        }
+
+        .theme-classic .grid {
+            background-image:
+                repeating-linear-gradient(0deg, #8b4513 0px, transparent 1px, transparent 100%, #8b4513 100%),
+                repeating-linear-gradient(90deg, #8b4513 0px, transparent 1px, transparent 100%, #8b4513 100%);
+        }
+
+        .theme-neon .grid {
+            background-image:
+                repeating-linear-gradient(0deg, rgba(255, 0, 110, 0.3) 0px, transparent 1px, transparent 100%, rgba(255, 0, 110, 0.3) 100%),
+                repeating-linear-gradient(90deg, rgba(131, 56, 236, 0.3) 0px, transparent 1px, transparent 100%, rgba(131, 56, 236, 0.3) 100%);
+        }
+
+        .intersection {
+            position: relative;
+            width: 100%;
+            padding-bottom: 100%;
+            cursor: pointer;
+        }
+
+        .intersection::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+
+        .theme-classic .intersection::before {
+            background: rgba(139, 69, 19, 0.5);
+        }
+
+        .piece {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            animation: dropIn 0.3s ease-out;
+            z-index: 10;
+        }
+
+        .hint-piece {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            opacity: 0.5;
+            z-index: 5;
+            animation: hintPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes hintPulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.6;
+            }
+        }
+
+        @keyframes dropIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0) rotate(180deg);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2) rotate(90deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .theme-scifi .piece-black {
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .theme-scifi .piece-white {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .theme-neon .piece-black {
+            box-shadow: 0 0 20px rgba(255, 0, 110, 0.5);
+        }
+
+        .theme-neon .piece-white {
+            box-shadow: 0 0 20px rgba(131, 56, 236, 0.5);
+        }
+
+        .winning-piece {
+            animation: winPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes winPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.3); }
+        }
+
+        .theme-selector {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 30px;
+            border-radius: 20px;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .theme-selector.active {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .selector-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 255, 136, 0.3);
+        }
+
+        .theme-options {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .theme-option {
+            width: 100px;
+            height: 100px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theme-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .theme-option.scifi {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        }
+
+        .theme-option.classic {
+            background: linear-gradient(135deg, #f5f5dc, #d2b48c);
+        }
+
+        .theme-option.neon {
+            background: linear-gradient(135deg, #000428, #004e92);
+        }
+
+        .theme-option.active::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            color: white;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .piece-skin-options {
+            display: none;
+        }
+
+        .piece-skin-options.active {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .piece-skin-option {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .piece-skin-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .piece-skin-option .preview-black {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .piece-skin-option .preview-white {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+        }
+
+        .piece-skin-option.active {
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .game-over.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .game-over-content {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            transform: scale(0);
+            transition: transform 0.3s ease;
+        }
+
+        .game-over.active .game-over-content {
+            transform: scale(1);
+        }
+
+        .game-over-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 20px;
+            }
+            .milkdragon-btn {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+            .btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .board {
+                padding: 10px;
+            }
+
+            .theme-selector {
+                padding: 20px;
+            }
+
+            .theme-options {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .theme-option {
+                width: 80px;
+                height: 80px;
+            }
+
+            .piece-skin-options {
+                flex-direction: column;
+            }
+
+            .difficulty-btn {
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #00ff88;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .sound-toggle {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 24px;
+            z-index: 100;
+        }
+
+        .sound-toggle:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .music-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .music-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 18px;
+            color: white;
+        }
+
+        .music-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .volume-slider {
+            width: 100px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 0 15px;
+        }
+
+        .volume-slider input {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+            border-radius: 2px;
+        }
+
+        .volume-slider input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .ai-thinking {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 500;
+        }
+
+        .ai-thinking.active {
+            display: flex;
+        }
+
+        .thinking-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: thinking 1.4s infinite ease-in-out both;
+        }
+
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes thinking {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="theme-scifi piece-skin-classic">
+    <div class="game-container">
+        <header class="header">
+            <h1 class="game-title">奶龙五子棋</h1>
+            <div class="controls-wrapper">
+                <button class="milkdragon-btn" id="milkdragonBtn" onclick="playMilkdragonMusic()">我是奶龙（点击播放音乐）</button>
+                <div class="controls">
+                    <div class="difficulty-selector">
+                        <button class="difficulty-btn active" onclick="game.setDifficulty('easy')">新手</button>
+                        <button class="difficulty-btn" onclick="game.setDifficulty('medium')">普通</button>
+                        <button class="difficulty-btn" onclick="game.setDifficulty('hard')">困难</button>
+                        <button class="difficulty-btn" onclick="game.setDifficulty('expert')">Makaveli（神）</button>
+                    </div>
+                    <button class="btn" onclick="game.newGame()">新游戏</button>
+                    <button class="btn" id="teachingBtn" onclick="game.toggleTeaching()">教学模式</button>
+                    <button class="btn" onclick="toggleThemeSelector()">皮肤</button>
+                    <button class="btn" onclick="game.undo()">悔棋</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="game-info">
+            <div class="player-info">
+                <div class="player-indicator piece-black" id="blackIndicator"></div>
+                <span>玩家</span>
+            </div>
+            <div class="turn-info" id="turnInfo">黑棋先行</div>
+            <div class="player-info">
+                <div class="player-indicator piece-white" id="whiteIndicator"></div>
+                <span>奶龙</span>
+            </div>
+        </div>
+
+        <div class="board-container">
+            <div class="board">
+                <div class="grid" id="gameGrid"></div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">奶龙思考中...</div>
+        <div class="ai-thinking" id="aiThinking">
+            <div class="thinking-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <span style="color: #00ff88;">AI思考中...</span>
+        </div>
+    </div>
+
+    <div class="theme-selector" id="themeSelector">
+        <h3 style="color: white; text-align: center;">选择皮肤</h3>
+        <div class="selector-tabs">
+            <button class="tab-btn active" onclick="switchTab('theme')">主题</button>
+            <button class="tab-btn" onclick="switchTab('piece')">棋子</button>
+        </div>
+
+        <div class="theme-options" id="themeOptions">
+            <div class="theme-option scifi active" onclick="changeTheme('scifi')"></div>
+            <div class="theme-option classic" onclick="changeTheme('classic')"></div>
+            <div class="theme-option neon" onclick="changeTheme('neon')"></div>
+        </div>
+
+        <div class="piece-skin-options" id="pieceSkinOptions">
+            <div class="piece-skin-option active" onclick="changePieceSkin('classic')">
+                <div class="preview-black" style="background: radial-gradient(circle at 30% 30%, #444, #000);"></div>
+                <div class="preview-white" style="background: radial-gradient(circle at 30% 30%, #fff, #ddd);"></div>
+            </div>
+            <div class="piece-skin-option" onclick="changePieceSkin('crystal')">
+                <div class="preview-black" style="background: radial-gradient(circle at 30% 30%, #4a0080, #000); box-shadow: 0 0 10px rgba(138, 43, 226, 0.8);"></div>
+                <div class="preview-white" style="background: radial-gradient(circle at 30% 30%, #e6e6fa, #b19cd9); box-shadow: 0 0 10px rgba(147, 112, 219, 0.8);"></div>
+            </div>
+            <div class="piece-skin-option" onclick="changePieceSkin('fire')">
+                <div class="preview-black" style="background: radial-gradient(circle at 30% 30%, #ff4500, #8b0000); box-shadow: 0 0 10px rgba(255, 69, 0, 0.9);"></div>
+                <div class="preview-white" style="background: radial-gradient(circle at 30% 30%, #ffd700, #ff8c00); box-shadow: 0 0 10px rgba(255, 215, 0, 0.9);"></div>
+            </div>
+            <div class="piece-skin-option" onclick="changePieceSkin('ice')">
+                <div class="preview-black" style="background: radial-gradient(circle at 30% 30%, #191970, #000080); box-shadow: 0 0 10px rgba(0, 191, 255, 0.8);"></div>
+                <div class="preview-white" style="background: radial-gradient(circle at 30% 30%, #e0ffff, #afeeee); box-shadow: 0 0 10px rgba(135, 206, 250, 0.8);"></div>
+            </div>
+            <div class="piece-skin-option" onclick="changePieceSkin('scifi')">
+                <div class="preview-black" style="background: radial-gradient(circle at 30% 30%, #00ffff, #0066cc); box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);"></div>
+                <div class="preview-white" style="background: radial-gradient(circle at 30% 30%, #ff00ff, #9900cc); box-shadow: 0 0 15px rgba(255, 0, 255, 0.8);"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2 class="game-over-title" id="gameOverTitle">游戏结束</h2>
+            <button class="btn" onclick="game.newGame(); document.getElementById('gameOver').classList.remove('active')">再来一局</button>
+        </div>
+    </div>
+
+    <div class="music-controls">
+        <button class="music-btn" id="musicToggle" onclick="toggleMusic()">🎵</button>
+        <div class="volume-slider">
+            <input type="range" id="volumeSlider" min="0" max="100" value="30" onchange="setVolume(this.value)">
+        </div>
+    </div>
+
+    <div class="sound-toggle" id="soundToggle" onclick="toggleSound()">
+        🔊
+    </div>
+
+    <script>
+        class SciFiMusicGenerator {
+            constructor() {
+                this.audio = new Audio('http://music.163.com/song/media/outer/url?id=2645481971.mp3');
+                this.audio.loop = true;
+                this.audio.volume = 0.3;
+                this.isPlaying = false;
+            }
+
+            play() {
+                if (!this.isPlaying) {
+                    this.audio.play().then(() => {
+                        this.isPlaying = true;
+                        console.log("Music started playing.");
+                        updateMusicButtonUI();
+                    }).catch(error => {
+                        console.error("Failed to play music:", error);
+                        alert("播放失败，请检查网络或稍后再试。");
+                    });
+                }
+            }
+
+            stop() {
+                if (this.isPlaying) {
+                    this.audio.pause();
+                    this.audio.currentTime = 0;
+                    this.isPlaying = false;
+                    console.log("Music stopped.");
+                    updateMusicButtonUI();
+                }
+            }
+
+            setVolume(value) {
+                this.audio.volume = value / 100;
+            }
+        }
+
+        class Zobrist {
+            constructor(size) {
+                this.size = size;
+                this.table = Array(size).fill(0).map(() => Array(size).fill(0).map(() => [
+                    Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
+                    Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
+                ]));
+            }
+
+            computeHash(board) {
+                let hash = 0;
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = 0; j < this.size; j++) {
+                        if (board[i][j]) {
+                            const playerIndex = board[i][j] === 'black' ? 0 : 1;
+                            hash ^= this.table[i][j][playerIndex];
+                        }
+                    }
+                }
+                return hash;
+            }
+
+            updateHash(hash, row, col, player) {
+                const playerIndex = player === 'black' ? 0 : 1;
+                return hash ^ this.table[row][col][playerIndex];
+            }
+        }
+
+        class GomokuAI {
+            constructor(boardSize) {
+                this.boardSize = boardSize;
+                this.zobrist = new Zobrist(boardSize);
+                this.transpositionTable = new Map();
+
+                this.scores = {
+                    FIVE: 10000000,
+                    OPEN_FOUR: 100000,
+                    FOUR: 10000,
+                    OPEN_THREE: 5000,
+                    THREE: 1000,
+                    OPEN_TWO: 500,
+                    TWO: 100,
+                    ONE: 10
+                };
+            }
+
+            findBestMove(board, player, depth) {
+                this.transpositionTable.clear();
+                const startTime = performance.now();
+                const bestMove = this.minimax(board, depth, -Infinity, Infinity, true, player);
+                const endTime = performance.now();
+                console.log(`AI decision took ${endTime - startTime}ms. Searched depth: ${depth}. Best move score: ${bestMove.score}`);
+                return bestMove;
+            }
+
+            minimax(board, depth, alpha, beta, maximizingPlayer, player) {
+                const hash = this.zobrist.computeHash(board);
+                const cached = this.transpositionTable.get(hash);
+                if (cached && cached.depth >= depth) {
+                    if (cached.flag === 'EXACT') return { score: cached.score, row: -1, col: -1 };
+                    if (cached.flag === 'LOWER' && cached.score > alpha) alpha = cached.score;
+                    if (cached.flag === 'UPPER' && cached.score < beta) beta = cached.score;
+                    if (alpha >= beta) return { score: cached.score, row: -1, col: -1 };
+                }
+
+                const evaluation = this.evaluate(board, player);
+                if (depth === 0 || Math.abs(evaluation) >= this.scores.FIVE) {
+                    return { score: evaluation, row: -1, col: -1 };
+                }
+
+                const moves = this.generateMoves(board);
+                if (moves.length === 0) {
+                     return { score: 0, row: -1, col: -1 };
+                }
+
+                let bestMove = { score: maximizingPlayer ? -Infinity : Infinity, row: -1, col: -1 };
+                const currentPlayer = maximizingPlayer ? player : (player === 'black' ? 'white' : 'black');
+
+                for (const move of moves) {
+                    board[move.row][move.col] = currentPlayer;
+                    const result = this.minimax(board, depth - 1, alpha, beta, !maximizingPlayer, player);
+                    board[move.row][move.col] = null;
+
+                    if (maximizingPlayer) {
+                        if (result.score > bestMove.score) {
+                            bestMove.score = result.score;
+                            bestMove.row = move.row;
+                            bestMove.col = move.col;
+                        }
+                        alpha = Math.max(alpha, bestMove.score);
+                    } else {
+                        if (result.score < bestMove.score) {
+                            bestMove.score = result.score;
+                            bestMove.row = move.row;
+                            bestMove.col = move.col;
+                        }
+                        beta = Math.min(beta, bestMove.score);
+                    }
+
+                    if (alpha >= beta) break;
+                }
+
+                let flag = 'EXACT';
+                if (bestMove.score <= alpha) flag = 'UPPER';
+                else if (bestMove.score >= beta) flag = 'LOWER';
+                this.transpositionTable.set(hash, { score: bestMove.score, depth, flag });
+
+                return bestMove;
+            }
+
+            evaluate(board, player) {
+                let playerScore = 0;
+                let opponentScore = 0;
+                const opponent = player === 'black' ? 'white' : 'black';
+
+                for (let i = 0; i < this.boardSize; i++) {
+                    for (let j = 0; j <= this.boardSize - 5; j++) {
+                        const window = [];
+                        for(let k = 0; k < 5; k++) window.push(board[i][j+k]);
+                        const score = this.evaluateWindow(window, player, opponent);
+                        playerScore += score.player;
+                        opponentScore += score.opponent;
+                    }
+                }
+
+                for (let i = 0; i <= this.boardSize - 5; i++) {
+                    for (let j = 0; j < this.boardSize; j++) {
+                        const window = [];
+                        for(let k = 0; k < 5; k++) window.push(board[i+k][j]);
+                        const score = this.evaluateWindow(window, player, opponent);
+                        playerScore += score.player;
+                        opponentScore += score.opponent;
+                    }
+                }
+
+                for (let i = 0; i <= this.boardSize - 5; i++) {
+                    for (let j = 0; j <= this.boardSize - 5; j++) {
+                        const window = [];
+                        for(let k = 0; k < 5; k++) window.push(board[i+k][j+k]);
+                        const score = this.evaluateWindow(window, player, opponent);
+                        playerScore += score.player;
+                        opponentScore += score.opponent;
+                    }
+                }
+
+                for (let i = 0; i <= this.boardSize - 5; i++) {
+                    for (let j = 4; j < this.boardSize; j++) {
+                         const window = [];
+                        for(let k = 0; k < 5; k++) window.push(board[i+k][j-k]);
+                        const score = this.evaluateWindow(window, player, opponent);
+                        playerScore += score.player;
+                        opponentScore += score.opponent;
+                    }
+                }
+
+                return playerScore - opponentScore * 1.1;
+            }
+
+            evaluateWindow(window, player, opponent) {
+                let playerCount = 0;
+                let opponentCount = 0;
+                for (const cell of window) {
+                    if (cell === player) playerCount++;
+                    else if (cell === opponent) opponentCount++;
+                }
+
+                const score = { player: 0, opponent: 0 };
+                if (playerCount > 0 && opponentCount > 0) {
+                    return score;
+                }
+
+                if (playerCount > 0) {
+                    score.player = this.getScoreForPattern(playerCount, 5 - playerCount);
+                } else if (opponentCount > 0) {
+                    score.opponent = this.getScoreForPattern(opponentCount, 5 - opponentCount);
+                }
+                return score;
+            }
+
+            getScoreForPattern(count, empty) {
+                if (count === 5) return this.scores.FIVE;
+                if (count === 4) return this.scores.OPEN_FOUR;
+                if (count === 3) return empty === 2 ? this.scores.OPEN_THREE : this.scores.THREE;
+                if (count === 2) return empty === 3 ? this.scores.OPEN_TWO : this.scores.TWO;
+                if (count === 1) return this.scores.ONE;
+                return 0;
+            }
+
+            generateMoves(board) {
+                const moves = [];
+                for (let i = 0; i < this.boardSize; i++) {
+                    for (let j = 0; j < this.boardSize; j++) {
+                        if (board[i][j] === null && this.hasNeighbor(board, i, j, 2)) {
+                            const score = this.evaluateMove(board, i, j, 'white') + this.evaluateMove(board, i, j, 'black');
+                            moves.push({ row: i, col: j, score });
+                        }
+                    }
+                }
+                moves.sort((a, b) => b.score - a.score);
+                return moves.slice(0, 15);
+            }
+
+            evaluateMove(board, row, col, player) {
+                board[row][col] = player;
+                const score = this.evaluate(board, player);
+                board[row][col] = null;
+                return score;
+            }
+
+            hasNeighbor(board, row, col, distance) {
+                for (let i = -distance; i <= distance; i++) {
+                    for (let j = -distance; j <= distance; j++) {
+                        if (i === 0 && j === 0) continue;
+                        const r = row + i;
+                        const c = col + j;
+                        if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize && board[r][c]) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+        }
+
+        class GomokuGame {
+            constructor() {
+                this.boardSize = 15;
+                this.board = [];
+                this.currentPlayer = 'black';
+                this.gameOver = false;
+                this.moveHistory = [];
+                this.soundEnabled = true;
+                this.difficulty = 'easy';
+                this.musicGenerator = new SciFiMusicGenerator();
+                this.ai = new GomokuAI(this.boardSize);
+                this.zobrist = this.ai.zobrist;
+                this.currentHash = 0;
+                this.teachingMode = false;
+                this.hintMove = null;
+                this.init();
+            }
+
+            init() {
+                this.createBoard();
+                this.renderBoard();
+                this.updateTurnInfo();
+                this.currentHash = this.zobrist.computeHash(this.board);
+            }
+
+            createBoard() {
+                this.board = [];
+                for (let i = 0; i < this.boardSize; i++) {
+                    this.board[i] = new Array(this.boardSize).fill(null);
+                }
+            }
+
+            renderBoard() {
+                const grid = document.getElementById('gameGrid');
+                grid.innerHTML = '';
+
+                const availableWidth = window.innerWidth - 40;
+                const availableHeight = window.innerHeight - 200;
+                const boardDim = Math.min(availableWidth, availableHeight, 600);
+                const cellSize = boardDim / this.boardSize;
+
+                grid.style.width = `${boardDim}px`;
+                grid.style.height = `${boardDim}px`;
+                grid.style.backgroundSize = `${cellSize}px ${cellSize}px`;
+
+
+                for (let i = 0; i < this.boardSize; i++) {
+                    for (let j = 0; j < this.boardSize; j++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'intersection';
+                        cell.dataset.row = i;
+                        cell.dataset.col = j;
+                        cell.onclick = () => this.handleClick(i, j);
+                        grid.appendChild(cell);
+                    }
+                }
+
+                if (this.teachingMode && !this.gameOver && this.currentPlayer === 'black') {
+                    this.showHint();
+                }
+            }
+
+            handleClick(row, col) {
+                if (this.gameOver || this.board[row][col] || this.currentPlayer === 'white') {
+                    return;
+                }
+
+                this.makeMove(row, col, 'black');
+
+                if (!this.gameOver) {
+                    this.currentPlayer = 'white';
+                    this.updateTurnInfo();
+                    this.showLoading(true);
+
+                    setTimeout(() => {
+                        this.aiMove();
+                        this.showLoading(false);
+                    }, 100);
+                }
+            }
+
+            makeMove(row, col, player) {
+                this.board[row][col] = player;
+                this.moveHistory.push({ row, col, player });
+                this.currentHash = this.zobrist.updateHash(this.currentHash, row, col, player);
+                this.renderPiece(row, col, player);
+
+                if (this.checkWin(row, col, player)) {
+                    this.endGame(player);
+                } else if (this.moveHistory.length === this.boardSize * this.boardSize) {
+                    this.endGame('draw');
+                }
+
+                if (this.teachingMode && !this.gameOver && this.currentPlayer === 'black') {
+                    this.clearHint();
+                    setTimeout(() => this.showHint(), 500);
+                }
+            }
+
+            renderPiece(row, col, player) {
+                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                if (!cell.querySelector('.piece')) {
+                    const piece = document.createElement('div');
+                    piece.className = `piece piece-${player}`;
+                    cell.appendChild(piece);
+                    this.playSound('place');
+                }
+            }
+
+            toggleTeaching() {
+                this.teachingMode = !this.teachingMode;
+                const btn = document.getElementById('teachingBtn');
+                btn.classList.toggle('active', this.teachingMode);
+
+                if (this.teachingMode && !this.gameOver && this.currentPlayer === 'black') {
+                    this.showHint();
+                } else {
+                    this.clearHint();
+                }
+            }
+
+            showHint() {
+                if (!this.teachingMode || this.gameOver || this.currentPlayer !== 'black') return;
+
+                const depthMap = { 'easy': 2, 'medium': 3, 'hard': 4, 'expert': 5 };
+                const depth = depthMap[this.difficulty];
+                const bestMove = this.ai.findBestMove(this.board, 'black', depth);
+
+                if (bestMove && bestMove.row !== -1) {
+                    this.hintMove = bestMove;
+                    const cell = document.querySelector(`[data-row="${bestMove.row}"][data-col="${bestMove.col}"]`);
+                    if (cell && !cell.querySelector('.piece')) {
+                        const hint = document.createElement('div');
+                        hint.className = 'hint-piece piece-black';
+                        cell.appendChild(hint);
+                    }
+                }
+            }
+
+            clearHint() {
+                const hints = document.querySelectorAll('.hint-piece');
+                hints.forEach(hint => hint.remove());
+                this.hintMove = null;
+            }
+
+            setDifficulty(level) {
+                this.difficulty = level;
+                document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+
+                if (this.teachingMode) {
+                    this.clearHint();
+                    setTimeout(() => this.showHint(), 100);
+                }
+            }
+
+            aiMove() {
+                const depthMap = { 'easy': 2, 'medium': 3, 'hard': 4, 'expert': 5 };
+                const depth = depthMap[this.difficulty];
+
+                const move = this.ai.findBestMove(this.board, 'white', depth);
+
+                if (move && move.row !== -1) {
+                    this.makeMove(move.row, move.col, 'white');
+                    this.currentPlayer = 'black';
+                    this.updateTurnInfo();
+                } else {
+                    if (!this.gameOver) this.endGame('draw');
+                }
+            }
+
+            checkWin(row, col, player) {
+                const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+                for (const [dr, dc] of directions) {
+                    let count = 1;
+                    const winningPieces = [{row, col}];
+                    for (let i = 1; i < 5; i++) {
+                        const r = row + dr * i, c = col + dc * i;
+                        if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize && this.board[r][c] === player) {
+                            count++; winningPieces.push({row: r, col: c});
+                        } else break;
+                    }
+                    for (let i = 1; i < 5; i++) {
+                        const r = row - dr * i, c = col - dc * i;
+                        if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize && this.board[r][c] === player) {
+                            count++; winningPieces.push({row: r, col: c});
+                        } else break;
+                    }
+                    if (count >= 5) {
+                        this.highlightWinningPieces(winningPieces);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            highlightWinningPieces(pieces) {
+                pieces.forEach(({row, col}) => {
+                    const piece = document.querySelector(`[data-row="${row}"][data-col="${col}"] .piece`);
+                    if (piece) piece.classList.add('winning-piece');
+                });
+            }
+
+            endGame(winner) {
+                this.gameOver = true;
+                this.clearHint();
+                const gameOverEl = document.getElementById('gameOver');
+                const titleEl = document.getElementById('gameOverTitle');
+                titleEl.textContent = winner === 'draw' ? '平局！' : (winner === 'black' ? '恭喜你赢了！' : '奶龙赢了！');
+                setTimeout(() => {
+                    gameOverEl.classList.add('active');
+                    this.playSound('gameOver');
+                }, 500);
+            }
+
+            updateTurnInfo() {
+                const turnInfo = document.getElementById('turnInfo');
+                const blackIndicator = document.getElementById('blackIndicator');
+                const whiteIndicator = document.getElementById('whiteIndicator');
+                if (this.currentPlayer === 'black') {
+                    turnInfo.textContent = this.teachingMode ? '轮到你了（教学）' : '轮到你了';
+                    blackIndicator.classList.add('player-active');
+                    whiteIndicator.classList.remove('player-active');
+                } else {
+                    turnInfo.textContent = '奶龙思考中...';
+                    blackIndicator.classList.remove('player-active');
+                    whiteIndicator.classList.add('player-active');
+                }
+            }
+
+            newGame() {
+                this.gameOver = false;
+                this.currentPlayer = 'black';
+                this.moveHistory = [];
+                this.createBoard();
+                this.renderBoard();
+                this.updateTurnInfo();
+                this.currentHash = this.zobrist.computeHash(this.board);
+                document.getElementById('gameOver').classList.remove('active');
+                this.playSound('newGame');
+
+                if (this.teachingMode) {
+                    setTimeout(() => this.showHint(), 500);
+                }
+            }
+
+            undo() {
+                if (this.moveHistory.length < 2 || this.gameOver) return;
+                for (let i = 0; i < 2; i++) {
+                    const lastMove = this.moveHistory.pop();
+                    this.board[lastMove.row][lastMove.col] = null;
+                    this.currentHash = this.zobrist.updateHash(this.currentHash, lastMove.row, lastMove.col, lastMove.player);
+                    const cell = document.querySelector(`[data-row="${lastMove.row}"][data-col="${lastMove.col}"]`);
+                    const piece = cell.querySelector('.piece');
+                    if (piece) piece.remove();
+                }
+                this.currentPlayer = 'black';
+                this.updateTurnInfo();
+                this.playSound('undo');
+
+                if (this.teachingMode) {
+                    setTimeout(() => this.showHint(), 500);
+                }
+            }
+
+            showLoading(show) {
+                const indicator = this.difficulty === 'expert' || this.difficulty === 'hard' ? 'aiThinking' : 'loading';
+                document.getElementById(indicator).classList.toggle('active', show);
+            }
+
+            playSound(type) {
+                if (!this.soundEnabled) return;
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                switch(type) {
+                    case 'place': oscillator.frequency.value = 800; gainNode.gain.value = 0.1; break;
+                    case 'gameOver': oscillator.frequency.value = 400; gainNode.gain.value = 0.2; break;
+                    default: oscillator.frequency.value = 600; gainNode.gain.value = 0.1; break;
+                }
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + (type === 'gameOver' ? 0.5 : 0.1));
+            }
+        }
+
+        const game = new GomokuGame();
+
+        function toggleThemeSelector() { document.getElementById('themeSelector').classList.toggle('active'); }
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            const isTheme = tab === 'theme';
+            document.getElementById('themeOptions').style.display = isTheme ? 'flex' : 'none';
+            document.getElementById('pieceSkinOptions').classList.toggle('active', !isTheme);
+        }
+        function changeTheme(theme) {
+            const body = document.body;
+            body.className = body.className.replace(/theme-\w+/, `theme-${theme}`);
+            document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
+            document.querySelector(`.theme-option.${theme}`).classList.add('active');
+        }
+        function changePieceSkin(skin) {
+            document.body.className = document.body.className.replace(/piece-skin-\w+/, `piece-skin-${skin}`);
+            document.querySelectorAll('.piece-skin-option').forEach(opt => opt.classList.remove('active'));
+            document.querySelector(`.piece-skin-option[onclick="changePieceSkin('${skin}')"]`).classList.add('active');
+            toggleThemeSelector();
+        }
+        function toggleSound() {
+            game.soundEnabled = !game.soundEnabled;
+            document.getElementById('soundToggle').textContent = game.soundEnabled ? '🔊' : '🔇';
+        }
+        function toggleMusic() {
+            if (game.musicGenerator.isPlaying) {
+                game.musicGenerator.stop();
+            } else {
+                game.musicGenerator.play();
+            }
+            updateMusicButtonUI();
+        }
+        function setVolume(value) { game.musicGenerator.setVolume(value); }
+
+        function updateMusicButtonUI() {
+            const btn = document.getElementById('musicToggle');
+            btn.textContent = game.musicGenerator.isPlaying ? '🎶' : '🎵';
+            btn.style.opacity = game.musicGenerator.isPlaying ? '1' : '0.5';
+        }
+
+        function playMilkdragonMusic() {
+            const milkdragonBtn = document.getElementById('milkdragonBtn');
+            
+            if (game.musicGenerator.isPlaying) {
+                console.log("Music is already playing.");
+                return;
+            }
+
+            game.musicGenerator.play().then(() => {
+                milkdragonBtn.classList.add('played');
+                milkdragonBtn.textContent = '奶龙驾到';
+                milkdragonBtn.onclick = null;
+            }).catch(error => {
+                console.error("Failed to play music on milkdragon button click:", error);
+                alert("播放失败，请检查网络或稍后再试。");
+            });
+        }
+
+        window.addEventListener('resize', () => game.renderBoard());
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) event.preventDefault();
+            lastTouchEnd = now;
+        }, false);
+
+        document.getElementById('musicToggle').textContent = '🎵';
+        document.getElementById('musicToggle').style.opacity = '0.5';
+    </script>
+</body>
+</html>
